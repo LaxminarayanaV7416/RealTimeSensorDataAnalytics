@@ -1,4 +1,5 @@
 package com.psd.RealTimeSensorDataAnalyticsBackend.controllers;
+package com.psd.RealTimeSensorDataAnalyticsBackend.controllers;
 
 import com.psd.RealTimeSensorDataAnalyticsBackend.models.MqttPublishModel;
 import com.psd.RealTimeSensorDataAnalyticsBackend.services.MqttService;

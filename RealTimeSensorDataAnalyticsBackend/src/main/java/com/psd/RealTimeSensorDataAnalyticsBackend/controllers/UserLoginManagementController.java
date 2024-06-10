@@ -17,7 +17,7 @@ import com.psd.RealTimeSensorDataAnalyticsBackend.repository.UserRepository;
 import com.psd.RealTimeSensorDataAnalyticsBackend.utils.JwtTokenUtil;
 import com.psd.RealTimeSensorDataAnalyticsBackend.constants.UserEnum;
 
-@Controller
+@RestController
 @RequestMapping
 public class UserLoginManagementController {
 
@@ -33,41 +33,52 @@ public class UserLoginManagementController {
     @CrossOrigin(origins = "http://localhost:3000")
     @PostMapping("/register")
     public ResponseEntity<Object> registerUser(@RequestBody Users user){
-        String hashedPassword = bCryptPasswordEncoder.encode(user.getPassword());
-        user.setPassword(hashedPassword);
-        user.setUserType(UserEnum.IS_USER.toString());
+        Users searchedUser = userRepository.findByUsername(user.getUsername());
         Map<String, String> resultResponse = new HashMap<>();
-        if (userRepository.save(user).getId()>0){
-            resultResponse.put("message", "User Registered Succesfully");
-            return ResponseEntity.ok(resultResponse);
+        if (searchedUser == null){
+            String hashedPassword = bCryptPasswordEncoder.encode(user.getPassword());
+            user.setPassword(hashedPassword);
+            user.setUserType(UserEnum.IS_USER.toString());
+            if (userRepository.save(user).getId()>0){
+                resultResponse.put("message", "User Registered Succesfully");
+                return ResponseEntity.ok(resultResponse);
+            }
+            resultResponse.put("message", "User Not Saved, Internal Server Error. Please Try Again");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(resultResponse);
         }
-        resultResponse.put("message", "User Not Saved, Internal Server Error. Please Try Again");
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(resultResponse);
+        resultResponse.put("message", "User Not Saved, User already exsists");
+        return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(resultResponse);
     }
 
     @CrossOrigin(origins = "http://localhost:3000")
     @PostMapping("/register-admin")
     public ResponseEntity<Object> registerAdminUser(@RequestBody Users user){
-        String hashedPassword = bCryptPasswordEncoder.encode(user.getPassword());
-        user.setPassword(hashedPassword);
-        user.setUserType(UserEnum.IS_ADMIN.toString());
+        Users searchedUser = userRepository.findByUsername(user.getUsername());
         Map<String, String> resultResponse = new HashMap<>();
-        if (userRepository.save(user).getId()>0){
-            resultResponse.put("message", "User Registered Succesfully");
-            return ResponseEntity.ok(resultResponse);
+        if (searchedUser == null){
+            String hashedPassword = bCryptPasswordEncoder.encode(user.getPassword());
+            user.setPassword(hashedPassword);
+            user.setUserType(UserEnum.IS_ADMIN.toString());
+            if (userRepository.save(user).getId()>0){
+                resultResponse.put("message", "User Registered Succesfully");
+                return ResponseEntity.ok(resultResponse);
+            }
+            resultResponse.put("message", "User Not Saved, Internal Server Error. Please Try Again");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(resultResponse);
         }
-        resultResponse.put("message", "User Not Saved, Internal Server Error. Please Try Again");
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(resultResponse);
+        resultResponse.put("message", "User Not Saved, User already exsists");
+        return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(resultResponse);
     }
 
     @CrossOrigin(origins = "http://localhost:3000")
     @PostMapping("/login")
     public ResponseEntity<Object> generateToken(@RequestBody TokenModel tokenReqRes){
         Users databaseUser = userRepository.findByUsername(tokenReqRes.getUsername());
-        if (databaseUser == null){
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Sorry, User Does Not Exist");
-        }
         Map<String, String> resultResponse = new HashMap<>();
+        if (databaseUser == null){
+            resultResponse.put("message", "Sorry, User Does Not Exist");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(resultResponse);
+        }
         if (new BCryptPasswordEncoder().matches(tokenReqRes.getPassword(), databaseUser.getPassword())){
             String tokenString = tokenReqRes.getUsername() + " <> " + databaseUser.getId() + " <> " + databaseUser.getUserType();
             String token = jwtTokenUtil.generateToken(tokenString);
@@ -97,10 +108,10 @@ public class UserLoginManagementController {
         }else{
             System.out.println("TOKEN IS --> "+token);
             String realToken = token.substring(7);
-            String tokenCheckResult = jwtTokenUtil.validateToken(realToken);
+            boolean tokenCheckResult = jwtTokenUtil.validateToken(realToken);
             String username = jwtTokenUtil.getUsernameFromToken(realToken);
             System.out.println("USERNAME --> "+username);
-            if (tokenCheckResult.equalsIgnoreCase("valid")){
+            if (tokenCheckResult){
                 List<String> fruits = List.of("Mango", "Banana", "Orange","Watermellon","Grapes", "Appple", "Berries");
                 return new ResponseEntity<>(fruits, HttpStatus.OK);
             }else{

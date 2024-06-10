@@ -24,6 +24,26 @@ services:
       - backend_network
 
 
+  mqtt:
+    image: apache/activemq-artemis:latest-alpine
+    restart: always
+    container_name: mqtt
+    # set shared memory limit when using docker-compose
+    shm_size: 128mb
+    env_file:
+      - ./dockerConfig.env
+    volumes:
+      - ./database/mqtt:/var/lib/artemis-instance
+    ports:
+      - 1883:1883 # 61616:61616 # 1883:1883
+      - 8161:8161
+    expose:
+      - 8161
+      - 61616
+      - 1883
+    networks:
+      - backend_network
+
 networks:
   backend_network:
   # frontend_network:

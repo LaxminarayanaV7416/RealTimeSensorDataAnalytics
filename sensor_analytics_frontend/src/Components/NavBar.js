@@ -31,8 +31,8 @@ function NavBar() {
     <nav className="navbar">
       <div className="navbar-left">
         <div className="brand"><img src={Logo} /></div>
-        <NavLink exact to="/dashboard" className = "nav-link" activeClassName="active">Home</NavLink>
-        <NavLink exact to="/graphs" className = "nav-link" activeClassName="active">Graphs</NavLink>
+        <NavLink exact to="/dashboard" className = "nav-link" activeclassname="active">Home</NavLink>
+        <NavLink exact to="/graphs" className = "nav-link" activeclassname="active">Graphs</NavLink>
       </div>
       <div className="navbar-right">
         <Clock />

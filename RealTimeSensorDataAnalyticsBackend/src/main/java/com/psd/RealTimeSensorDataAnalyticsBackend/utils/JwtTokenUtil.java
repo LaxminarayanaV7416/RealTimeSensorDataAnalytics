@@ -37,7 +37,23 @@ public class JwtTokenUtil {
         return claims.getSubject(); // This retrieves the username from the token
     }
 
-    public String validateToken(String token) {
+    public boolean validateToken(String token) {
+        try {
+            Jwts.parserBuilder()
+                    .setSigningKey(secreteKey)
+                    .build()
+                    .parseClaimsJws(token);
+            return true;
+        } catch (ExpiredJwtException ex) {
+            // Token is expired
+            return false;
+        } catch (JwtException | IllegalArgumentException e) {
+            // Token is invalid (failed parsing or verification)
+            return false;
+        }
+    }
+
+    public String getUserNameFromToken(String token){
         try {
             Jwts.parserBuilder()
                     .setSigningKey(secreteKey)
@@ -52,4 +68,6 @@ public class JwtTokenUtil {
             return "invalid token";
         }
     }
+
+
 }

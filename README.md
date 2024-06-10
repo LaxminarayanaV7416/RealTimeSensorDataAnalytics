@@ -15,3 +15,5 @@ $ ./gradlew bootRun
 ## Command to run the docker
 $ docker compose --env-file dockerConfig.yml up
 
+## Swagger UI
+http://localhost:8080/swagger-ui/index.html
