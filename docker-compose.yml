@@ -23,11 +23,10 @@ services:
     networks:
       - backend_network
 
-
-  mqtt:
+  activemq:
     image: apache/activemq-artemis:latest-alpine
     restart: always
-    container_name: mqtt
+    container_name: activemq
     # set shared memory limit when using docker-compose
     shm_size: 128mb
     env_file:
@@ -35,16 +34,63 @@ services:
     volumes:
       - ./database/mqtt:/var/lib/artemis-instance
     ports:
-      - 1883:1883 # 61616:61616 # 1883:1883
+      - 1883:1883
       - 8161:8161
     expose:
       - 8161
-      - 61616
       - 1883
     networks:
       - backend_network
+    depends_on:
+      - db
+
+  backend:
+    build:
+      context: ./RealTimeSensorDataAnalyticsBackend
+      dockerfile: Dockerfile
+    restart: always
+    env_file:
+      - ./dockerConfig.env
+    container_name: backend
+    ports:
+      - 8080:8080
+    networks:
+      - frontend_network
+      - backend_network
+    depends_on:
+      - db
+      - activemq
+    expose:
+      - 8080
+
+  frontend:
+    build:
+      context: ./sensor_analytics_frontend
+      dockerfile: Dockerfile
+    restart: always
+    env_file:
+      - ./dockerConfig.env
+    container_name: analytics_frontend
+    ports:
+      - ${FRONTEND_PORT}:${FRONTEND_PORT}
+    networks:
+      - frontend_network
+    expose:
+      - ${FRONTEND_PORT}
+    depends_on:
+      - db
+      - activemq
+      - backend
+
+
+# volumes:
+#   pgdata:
+#     driver: local
+#     driver_opts:
+#       type: 'none'
+#       o: 'bind'
+#       device: ./pgdata
 
 networks:
   backend_network:
-  # frontend_network:
-  #
+  frontend_network:

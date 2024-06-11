@@ -52,7 +52,7 @@ jobs:
       - restore_cache:
           key: cache-{{ checksum "/tmp/CIRCLECI_CACHE_KEY" }}
       - run:
-          command: ./gradlew check
+          command: ./gradlew test
       - store_test_results:
           path: build/test-results
       - save_cache:
@@ -61,6 +61,32 @@ jobs:
             - ~/.gradle/caches
       - store_artifacts:
           path: build/reports
+  build-java:
+    docker:
+      - image: cimg/openjdk:17.0
+    working_directory: ~/project/RealTimeSensorDataAnalyticsBackend
+    steps:
+      - checkout:
+          path: ~/project
+      - run:
+          name: Calculate cache key
+          command: |-
+            find . -name 'pom.xml' -o -name 'gradlew*' -o -name '*.gradle*' | \
+                    sort | xargs cat > /tmp/CIRCLECI_CACHE_KEY
+      - restore_cache:
+          key: cache-{{ checksum "/tmp/CIRCLECI_CACHE_KEY" }}
+      - run:
+          command: ./gradlew build
+      - run:
+          name: Create the ~/artifacts directory if it doesn't exist
+          command: mkdir -p ~/javaArtifacts
+      # Copy output to artifacts dir
+      - run:
+          name: Copy javaArtifacts
+          command: cp -R build/libs/*.jar ~/javaArtifacts 2>/dev/null || true
+      - store_artifacts:
+          path: ~/javaArtifacts
+          destination: java-build
   deploy:
     # This is an example deploy job, not actually used by the workflow
     docker:
@@ -79,6 +105,10 @@ workflows:
             - test-node
             - test-java
       - test-java
+      - build-java:
+          requires:
+            - test-node
+            - test-java
     # - deploy:
     #     requires:
     #       - build-node

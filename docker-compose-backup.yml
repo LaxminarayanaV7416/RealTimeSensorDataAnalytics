@@ -61,10 +61,10 @@ services:
       - db
       - backend
 
-  mqtt:
+  activemq:
     image: apache/activemq-artemis:latest-alpine
     restart: always
-    container_name: mqtt
+    container_name: activemq
     # set shared memory limit when using docker-compose
     shm_size: 128mb
     env_file:
@@ -79,6 +79,8 @@ services:
       - 61616
     networks:
       - backend_network
+    depends_on:
+      - db
 
   # zookeeper:
   #   image: wurstmeister/zookeeper:latest

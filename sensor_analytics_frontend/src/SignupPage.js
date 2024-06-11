@@ -18,7 +18,7 @@ const SignupPage = () => {
     try {
       const data = await register(name, username, email, password);
       console.log('Signup successful:', data);
-      navigate('/dashboard');
+      navigate('/');
     } catch (error) {
       console.error('Signup error:', error);
       setErrorMessage(error.message);

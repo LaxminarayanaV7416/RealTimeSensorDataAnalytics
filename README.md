@@ -17,3 +17,7 @@ $ docker compose --env-file dockerConfig.yml up
 
 ## Swagger UI
 http://localhost:8080/swagger-ui/index.html
+
+
+# websocket refernce link
+https://kishoretarun.medium.com/websockets-integration-in-a-spring-boot-application-7e365c015f69
