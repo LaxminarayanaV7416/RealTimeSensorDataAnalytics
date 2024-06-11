@@ -56,24 +56,31 @@ public class OnBoardingSensorController {
             boolean tokenCheckResult = jwtTokenUtil.validateToken(realToken);
             topicsModel.setMachineName(topicsModel.getGroupName() + "_" + topicsModel.getTopicName());
             if (tokenCheckResult) {
-                try{
-                    topicsModel = topicRepository.save(topicsModel);
-                } catch(Exception exception) {
-                    result.put("message", "Table constraints failed, duplicate group name and topic name exists!");
-                    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(result);
-                }
-                if (topicsModel.getId() > 0) {
-                    try {
-                        IMqttClient mqttClient = MqttBrokerCallBacksAutoBeans.getInstance(
-                                credentialsConf.getMqttServerURL(), credentialsConf.getServerID(),
-                                credentialsConf.getUsername(), credentialsConf.getPassword());
-                        mqttClient.subscribe(topicsModel.getGroupName() + "_" + topicsModel.getTopicName());
-                        result.put("message", "Sensor " + topicsModel.getTopicName() + " onboarded Succefully");
-                        return ResponseEntity.status(HttpStatus.CREATED).body(result);
-                    } catch (MqttException exception) {
-                        result.put("message", "Failed to subscribe to MQTT topic: " + exception.getMessage());
-                        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(result);
+                String userNameFromToken = jwtTokenUtil.getUsernameFromToken(realToken);
+                UsersModel userInfo = userRepository.findByUsername(userNameFromToken);
+                if(userInfo.getUserType().equals(UserEnum.IS_ADMIN.toString())){
+                    try{
+                        topicsModel = topicRepository.save(topicsModel);
+                    } catch(Exception exception) {
+                        result.put("message", "Table constraints failed, duplicate group name and topic name exists!");
+                        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(result);
                     }
+                    if (topicsModel.getId() > 0) {
+                        try {
+                            IMqttClient mqttClient = MqttBrokerCallBacksAutoBeans.getInstance(
+                                    credentialsConf.getMqttServerURL(), credentialsConf.getServerID(),
+                                    credentialsConf.getUsername(), credentialsConf.getPassword());
+                            mqttClient.subscribe(topicsModel.getGroupName() + "_" + topicsModel.getTopicName());
+                            result.put("message", "Sensor " + topicsModel.getTopicName() + " onboarded Succefully");
+                            return ResponseEntity.status(HttpStatus.CREATED).body(result);
+                        } catch (MqttException exception) {
+                            result.put("message", "Failed to subscribe to MQTT topic: " + exception.getMessage());
+                            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(result);
+                        }
+                    }
+                } else {
+                    result.put("message", "only Admin can onbaord a sensor");
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN).body(result);
                 }
             } else {
                 result.put("message",
