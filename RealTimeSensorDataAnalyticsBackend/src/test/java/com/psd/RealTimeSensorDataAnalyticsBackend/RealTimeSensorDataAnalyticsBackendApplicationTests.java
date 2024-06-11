@@ -152,4 +152,33 @@ public class RealTimeSensorDataAnalyticsBackendApplicationTests {
         boolean result = jwtTokenUtil.validateToken(token);
         assertEquals("token expired, Please follow refresh mechanism to generate new token", result);
     }
+
+    @Autowired
+    private MqttService mqttService;
+
+    @Test
+    public void testMqttService() throws Exception {
+        // Setup
+        String topic = "test/topic";
+        String content = "Hello, MQTT!";
+        int qos = 2;
+        String broker = "tcp://localhost:1883";
+        String clientId = "testClient";
+        MemoryPersistence persistence = new MemoryPersistence();
+        MqttClient sampleClient = new MqttClient(broker, clientId, persistence);
+        MqttConnectOptions connOpts = new MqttConnectOptions();
+        connOpts.setCleanSession(true);
+        sampleClient.connect(connOpts);
+
+        // Publish message
+        MqttMessage message = new MqttMessage(content.getBytes());
+        message.setQos(qos);
+        sampleClient.publish(topic, message);
+
+        // Wait for message to be processed
+        Thread.sleep(1000);
+
+        // Assert
+        // Add your assertion here based on how your MQTT service processes messages
+    }
 }
