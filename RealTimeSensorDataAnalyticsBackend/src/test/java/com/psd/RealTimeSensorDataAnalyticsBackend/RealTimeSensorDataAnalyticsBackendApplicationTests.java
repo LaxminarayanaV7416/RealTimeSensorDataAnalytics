@@ -104,6 +104,7 @@ import com.psd.RealTimeSensorDataAnalyticsBackend.configurations.CredentialsConf
 import com.psd.RealTimeSensorDataAnalyticsBackend.configurations.MqttBrokerCallBacksAutoBeans;
 import com.psd.RealTimeSensorDataAnalyticsBackend.configurations.WebSocketBeans;
 import com.psd.RealTimeSensorDataAnalyticsBackend.controllers.OnBoardingSensorController;
+import com.psd.RealTimeSensorDataAnalyticsBackend.controllers.UserLoginManagementController;
 import com.psd.RealTimeSensorDataAnalyticsBackend.controllers.MqttController;
 import com.psd.RealTimeSensorDataAnalyticsBackend.models.MqttPublishModel;
 import com.psd.RealTimeSensorDataAnalyticsBackend.models.TopicsModel;
@@ -128,7 +129,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -142,6 +146,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 
 @SpringBootTest
 @ExtendWith(MockitoExtension.class)
@@ -178,6 +183,9 @@ public class RealTimeSensorDataAnalyticsBackendApplicationTests {
     @Mock
     private JwtTokenUtil jwtTokenUtil;
 
+    @MockBean
+    private BCryptPasswordEncoder bCryptPasswordEncoder;
+
     @InjectMocks
     private MqttBrokerCallBacksAutoBeans mqttBrokerCallBacksAutoBeans;
 
@@ -186,6 +194,10 @@ public class RealTimeSensorDataAnalyticsBackendApplicationTests {
 
     @InjectMocks
     private OnBoardingSensorController onBoardingSensorController;
+
+    @InjectMocks
+    private UserLoginManagementController userLoginManagementController;
+
 
     @BeforeEach
     public void setUp() throws org.eclipse.paho.client.mqttv3.MqttException {
@@ -414,6 +426,94 @@ public class RealTimeSensorDataAnalyticsBackendApplicationTests {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"machineName\": \"nonExistingMachine\"}"))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    public void testRegisterUser_Success() throws Exception {
+        UsersModel user = new UsersModel();
+        user.setUsername("testUser");
+        user.setPassword("testPassword");
+
+        when(userRepository.findByUsername("testUser")).thenReturn(null);
+        when(userRepository.save(user)).thenReturn(user);
+
+        mockMvc.perform(post("/register")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"username\": \"testUser\", \"password\": \"testPassword\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("User Registered Succesfully"));
+    }
+
+    @Test
+    public void testRegisterUser_UserAlreadyExists() throws Exception {
+        UsersModel user = new UsersModel();
+        user.setUsername("testUser");
+        user.setPassword("testPassword");
+
+        when(userRepository.findByUsername("testUser")).thenReturn(user);
+
+        mockMvc.perform(post("/register")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"username\": \"testUser\", \"password\": \"testPassword\"}"))
+                .andExpect(status().isNotAcceptable())
+                .andExpect(jsonPath("$.message").value("User Not Saved, User already exsists"));
+    }
+
+    @Test
+    public void testRegisterUser_InternalServerError() throws Exception {
+        UsersModel user = new UsersModel();
+        user.setUsername("testUser");
+        user.setPassword("testPassword");
+
+        when(userRepository.findByUsername("testUser")).thenReturn(null);
+        when(userRepository.save(user)).thenThrow(new RuntimeException("Internal Server Error"));
+
+        mockMvc.perform(post("/register")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"username\": \"testUser\", \"password\": \"testPassword\"}"))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.message").value("User Not Saved, Internal Server Error. Please Try Again"));
+    }
+
+    @Test
+    public void testLogin_Success() throws Exception {
+        UsersModel user = new UsersModel();
+        user.setUsername("testUser");
+        user.setPassword("testPassword");
+
+        when(userRepository.findByUsername("testUser")).thenReturn(user);
+        when(bCryptPasswordEncoder.matches("testPassword", user.getPassword())).thenReturn(true);
+        when(jwtTokenUtil.generateToken("testUser <> 1 <> IS_USER")).thenReturn("testToken");
+
+        mockMvc.perform(post("/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"username\": \"testUser\", \"password\": \"testPassword\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("success"))
+                .andExpect(jsonPath("$.token").value("testToken"));
+    }
+
+    @Test
+    public void testLogin_InvalidPassword() throws Exception {
+        UsersModel user = new UsersModel();
+        user.setUsername("testUser");
+        user.setPassword("testPassword");
+
+        when(userRepository.findByUsername("testUser")).thenReturn(user);
+        when(bCryptPasswordEncoder.matches("invalidPassword", user.getPassword())).thenReturn(false);
+
+        mockMvc.perform(post("/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"username\": \"testUser\", \"password\": \"invalidPassword\"}"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.message").value("Password Doesn't Match. Verify"));
+    }
+
+    @Test
+    public void testGetAllUsers_Unauthorized() throws Exception {
+        mockMvc.perform(get("/get-all-users"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.message").value("Provide the Authorization token"));
     }
 
     @TestConfiguration
