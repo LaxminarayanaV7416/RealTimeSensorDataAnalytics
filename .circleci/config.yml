@@ -72,17 +72,17 @@ jobs:
       - run:
           name: Authenticate with Docker Hub
           command: |
-            echo "$DOCKERHUB_TOKEN" | docker login --username $DOCKERHUB_USERNAME --password-stdin
+            echo "$DOCKERHUB_DINESH_TOKEN" | docker login --username $DOCKERHUB_DINESH_USERNAME --password-stdin
       - run:
           name: Tag the docker containers with latest tag
           command: |
-            docker tag project-frontend:latest laxvadnala/realtimeanalytics-frontend:${CIRCLE_SHA1}
-            docker tag project-backend:latest laxvadnala/realtimeanalytics-backend:${CIRCLE_SHA1}
+            docker tag project-frontend:latest saidineshvasireddy0123/realtimeanalytics-frontend:${CIRCLE_SHA1}
+            docker tag project-backend:latest saidineshvasireddy0123/realtimeanalytics-backend:${CIRCLE_SHA1}
       - run:
           name: Push the docker containers to docker hub
           command: |
-            docker push laxvadnala/realtimeanalytics-backend:${CIRCLE_SHA1}
-            docker push laxvadnala/realtimeanalytics-frontend:${CIRCLE_SHA1}
+            docker push saidineshvasireddy0123/realtimeanalytics-backend:${CIRCLE_SHA1}
+            docker push saidineshvasireddy0123/realtimeanalytics-frontend:${CIRCLE_SHA1}
 
 workflows:
   build-and-test:
@@ -95,4 +95,4 @@ workflows:
             - test-java
           filters:
             branches:
-              only: main
+              only: dinesh
