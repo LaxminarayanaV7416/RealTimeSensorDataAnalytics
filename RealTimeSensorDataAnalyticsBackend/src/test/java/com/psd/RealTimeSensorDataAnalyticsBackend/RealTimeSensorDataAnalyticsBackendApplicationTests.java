@@ -95,11 +95,20 @@
 package com.psd.RealTimeSensorDataAnalyticsBackend;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
+
+import com.psd.RealTimeSensorDataAnalyticsBackend.configurations.CredentialsConfBean;
+import com.psd.RealTimeSensorDataAnalyticsBackend.configurations.MqttBrokerCallBacksAutoBeans;
+import com.psd.RealTimeSensorDataAnalyticsBackend.configurations.WebSocketBeans;
+import com.psd.RealTimeSensorDataAnalyticsBackend.controllers.MqttController;
+import com.psd.RealTimeSensorDataAnalyticsBackend.models.MqttPublishModel;
+import com.psd.RealTimeSensorDataAnalyticsBackend.models.TopicsModel;
+import com.psd.RealTimeSensorDataAnalyticsBackend.repository.TopicRepository;
 
 import org.eclipse.paho.client.mqttv3.IMqttClient;
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
-import org.eclipse.paho.client.mqttv3.MqttException;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -112,16 +121,18 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
+import org.springframework.http.MediaType;
 import org.springframework.test.context.TestPropertySource;
-
-import com.psd.RealTimeSensorDataAnalyticsBackend.configurations.CredentialsConfBean;
-import com.psd.RealTimeSensorDataAnalyticsBackend.configurations.MqttBrokerCallBacksAutoBeans;
-import com.psd.RealTimeSensorDataAnalyticsBackend.configurations.WebSocketBeans;
-import com.psd.RealTimeSensorDataAnalyticsBackend.models.TopicsModel;
-import com.psd.RealTimeSensorDataAnalyticsBackend.repository.TopicRepository;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
 @ExtendWith(MockitoExtension.class)
@@ -134,6 +145,8 @@ import java.util.List;
         "spring.mqtt.password=testPass"
 })
 public class RealTimeSensorDataAnalyticsBackendApplicationTests {
+
+    private MockMvc mockMvc;
 
     @Autowired
     private CredentialsConfBean credentialsConfBean;
@@ -150,14 +163,22 @@ public class RealTimeSensorDataAnalyticsBackendApplicationTests {
     @InjectMocks
     private MqttBrokerCallBacksAutoBeans mqttBrokerCallBacksAutoBeans;
 
+    @InjectMocks
+    private MqttController mqttController;
+
     @BeforeEach
-    public void setUp() throws MqttException {
+    public void setUp() throws org.eclipse.paho.client.mqttv3.MqttException {
         MockitoAnnotations.openMocks(this);
+
+        mockMvc = MockMvcBuilders.standaloneSetup(mqttController).build();
 
         when(credentialsConfBean.getMqttServerURL()).thenReturn("tcp://localhost:1883");
         when(credentialsConfBean.getServerID()).thenReturn("testServer");
         when(credentialsConfBean.getUsername()).thenReturn("testUser");
         when(credentialsConfBean.getPassword()).thenReturn("testPass");
+
+        when(MqttBrokerCallBacksAutoBeans.getInstance(anyString(), anyString(), anyString(), anyString()))
+                .thenReturn(mqttClient);
 
         mqttBrokerCallBacksAutoBeans.initializeMqttClient();
 
@@ -191,12 +212,12 @@ public class RealTimeSensorDataAnalyticsBackendApplicationTests {
 
     // Test cases for MqttBrokerCallBacksAutoBeans
     @Test
-    public void testInitializeMqttClient() throws MqttException {
+    public void testInitializeMqttClient() throws org.eclipse.paho.client.mqttv3.MqttException {
         verify(mqttClient, times(1)).setCallback(mqttBrokerCallBacksAutoBeans);
     }
 
     @Test
-    public void testConnectionLost() throws MqttException, InterruptedException {
+    public void testConnectionLost() throws org.eclipse.paho.client.mqttv3.MqttException, InterruptedException {
         doNothing().when(mqttClient).reconnect();
         when(mqttClient.isConnected()).thenReturn(false, true);
 
@@ -214,7 +235,7 @@ public class RealTimeSensorDataAnalyticsBackendApplicationTests {
     }
 
     @Test
-    public void testResubscribeToDataBaseTopics() throws MqttException {
+    public void testResubscribeToDataBaseTopics() throws org.eclipse.paho.client.mqttv3.MqttException {
         TopicsModel topic1 = new TopicsModel();
         TopicsModel topic2 = new TopicsModel();
         List<TopicsModel> topics = Arrays.asList(topic1, topic2);
@@ -223,8 +244,65 @@ public class RealTimeSensorDataAnalyticsBackendApplicationTests {
 
         mqttBrokerCallBacksAutoBeans.resubscribeToDataBaseTopics();
 
-        verify(mqttClient, times(1)).subscribe("group1_topic1");
-        verify(mqttClient, times(1)).subscribe("group2_topic2");
+        verify(mqttClient, times(1)).subscribe(topic1.getGroupName() + "_" + topic1.getTopicName());
+        verify(mqttClient, times(1)).subscribe(topic2.getGroupName() + "_" + topic2.getTopicName());
+    }
+
+    // Test cases for MqttController
+    @Test
+    public void testPublishMessage_Success() throws Exception {
+        MqttPublishModel publishModel = new MqttPublishModel();
+        publishModel.setTopic("testTopic");
+        publishModel.setMessage("testMessage");
+        publishModel.setQos(1);
+        publishModel.setRetained(false);
+
+        MqttMessage mqttMessage = new MqttMessage(publishModel.getMessage().getBytes());
+        mqttMessage.setQos(publishModel.getQos());
+        mqttMessage.setRetained(publishModel.getRetained());
+
+        doNothing().when(mqttClient).publish(publishModel.getTopic(), mqttMessage);
+
+        mockMvc.perform(post("/api/mqtt/publish")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"topic\": \"testTopic\", \"message\": \"testMessage\", \"qos\": 1, \"retained\": false}"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    public void testPublishMessage_InvalidParameters() throws Exception {
+        mockMvc.perform(post("/api/mqtt/publish")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"topic\": \"\", \"message\": \"\", \"qos\": 1, \"retained\": false}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    public void testSubscribeChannel_Success() throws Exception {
+        MqttMessage mqttMessage = new MqttMessage("testMessage".getBytes());
+        mqttMessage.setQos(1);
+        mqttMessage.setId(123);
+
+        CountDownLatch countDownLatch = new CountDownLatch(1);
+        doAnswer(invocation -> {
+            ((org.eclipse.paho.client.mqttv3.IMqttMessageListener) invocation.getArgument(1))
+                    .messageArrived("testTopic", mqttMessage);
+            countDownLatch.countDown();
+            return null;
+        }).when(mqttClient).subscribeWithResponse(eq("testTopic"), any());
+
+        mockMvc.perform(get("/api/mqtt/subscribe")
+                .param("topic", "testTopic")
+                .param("wait_millis", "1000"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    public void testSubscribeChannel_Timeout() throws Exception {
+        mockMvc.perform(get("/api/mqtt/subscribe")
+                .param("topic", "testTopic")
+                .param("wait_millis", "10"))
+                .andExpect(status().isOk());
     }
 
     @TestConfiguration
@@ -235,7 +313,7 @@ public class RealTimeSensorDataAnalyticsBackendApplicationTests {
         }
 
         @Bean
-        public IMqttClient mqttClient() throws MqttException {
+        public IMqttClient mqttClient() throws org.eclipse.paho.client.mqttv3.MqttException {
             return mock(IMqttClient.class);
         }
     }
