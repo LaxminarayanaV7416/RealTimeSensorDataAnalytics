@@ -103,8 +103,10 @@ import static org.mockito.Mockito.*;
 import com.psd.RealTimeSensorDataAnalyticsBackend.configurations.CredentialsConfBean;
 import com.psd.RealTimeSensorDataAnalyticsBackend.configurations.MqttBrokerCallBacksAutoBeans;
 import com.psd.RealTimeSensorDataAnalyticsBackend.configurations.WebSocketBeans;
+import com.psd.RealTimeSensorDataAnalyticsBackend.constants.UserEnum;
 import com.psd.RealTimeSensorDataAnalyticsBackend.controllers.OnBoardingSensorController;
 import com.psd.RealTimeSensorDataAnalyticsBackend.controllers.UserLoginManagementController;
+import com.psd.RealTimeSensorDataAnalyticsBackend.controllers.UsersMachineController;
 import com.psd.RealTimeSensorDataAnalyticsBackend.controllers.MqttController;
 import com.psd.RealTimeSensorDataAnalyticsBackend.models.MqttPublishModel;
 import com.psd.RealTimeSensorDataAnalyticsBackend.models.TopicsModel;
@@ -129,12 +131,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.util.Arrays;
@@ -169,18 +171,18 @@ public class RealTimeSensorDataAnalyticsBackendApplicationTests {
     private WebSocketBeans mqttWebSocketHandler;
 
     @Mock
-    private TopicRepository topicRepository;
-
-    @Mock
-    private UserRepository userRepository;
-
-    @Mock
     private UsersMachineRepository usersMachineRepository;
 
     @Mock
     private IMqttClient mqttClient;
 
-    @Mock
+    @MockBean
+    private TopicRepository topicRepository;
+
+    @MockBean
+    private UserRepository userRepository;
+
+    @MockBean
     private JwtTokenUtil jwtTokenUtil;
 
     @MockBean
@@ -198,6 +200,8 @@ public class RealTimeSensorDataAnalyticsBackendApplicationTests {
     @InjectMocks
     private UserLoginManagementController userLoginManagementController;
 
+    @InjectMocks
+    private UsersMachineController usersMachineController;
 
     @BeforeEach
     public void setUp() throws org.eclipse.paho.client.mqttv3.MqttException {
@@ -515,6 +519,90 @@ public class RealTimeSensorDataAnalyticsBackendApplicationTests {
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.message").value("Provide the Authorization token"));
     }
+
+    @Test
+    public void testAssignMachineToUser_Success() throws Exception {
+        UsersModel adminUser = new UsersModel();
+        adminUser.setUsername("admin");
+        adminUser.setUserType(UserEnum.IS_ADMIN.toString());
+
+        UsersMachineModel machineModel = new UsersMachineModel();
+        machineModel.setMachineName("testMachine");
+        machineModel.setUsername("testUser");
+
+        when(userRepository.findByUsername("admin")).thenReturn(adminUser);
+        when(topicRepository.findByMachineName("testMachine")).thenReturn(new TopicsModel());
+        when(usersMachineRepository.save(machineModel)).thenReturn(machineModel);
+
+        mockMvc.perform(post("/assign-machine-to-user")
+                .header("Authorization", "Bearer token")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"username\": \"testUser\", \"machineName\": \"testMachine\"}"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    public void testListAllAvailableMachine_Success() throws Exception {
+        UsersModel user = new UsersModel();
+        user.setUsername("testUser");
+        user.setUserType(UserEnum.IS_USER.toString());
+
+        UsersMachineModel machine1 = new UsersMachineModel();
+        machine1.setMachineName("testMachine1");
+        machine1.setUsername("testUser");
+
+        UsersMachineModel machine2 = new UsersMachineModel();
+        machine2.setMachineName("testMachine2");
+        machine2.setUsername("testUser");
+
+        when(jwtTokenUtil.getUsernameFromToken("token")).thenReturn("testUser");
+        when(userRepository.findByUsername("testUser")).thenReturn(user);
+        when(usersMachineRepository.findByUsername("testUser")).thenReturn(Arrays.asList(machine1, machine2));
+
+        mockMvc.perform(get("/list-all-available-machines")
+                .header("Authorization", "Bearer token"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("success"))
+                .andExpect(jsonPath("$.response").isArray())
+                .andExpect(jsonPath("$.machineCount").value(2));
+    }
+
+    @Test
+    public void testAssignMachineToUser_Unauthorized() throws Exception {
+        mockMvc.perform(post("/assign-machine-to-user")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"username\": \"testUser\", \"machineName\": \"testMachine\"}"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    public void testAssignMachineToUser_AdminUserNotFound() throws Exception {
+        when(jwtTokenUtil.getUsernameFromToken("token")).thenReturn("testUser");
+        when(userRepository.findByUsername("testUser")).thenReturn(null);
+
+        mockMvc.perform(post("/assign-machine-to-user")
+                .header("Authorization", "Bearer token")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"username\": \"testUser\", \"machineName\": \"testMachine\"}"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    public void testListAllAvailableMachine_Unauthorized() throws Exception {
+        mockMvc.perform(get("/list-all-available-machines"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    public void testListAllAvailableMachine_UserNotFound() throws Exception {
+        when(jwtTokenUtil.getUsernameFromToken("token")).thenReturn("testUser");
+        when(userRepository.findByUsername("testUser")).thenReturn(null);
+
+        mockMvc.perform(get("/list-all-available-machines")
+                .header("Authorization", "Bearer token"))
+                .andExpect(status().isNotFound());
+    }
+
 
     @TestConfiguration
     static class TestConfig {
