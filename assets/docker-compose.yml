@@ -1,0 +1,75 @@
+version: '3.9'
+
+services:
+
+  db:
+    image: postgres:16.2-bullseye # we are using specific bullseye image for minimal DB size
+    restart: always
+    container_name: database
+    # set shared memory limit when using docker-compose
+    shm_size: 128mb
+    environment:
+      POSTGRES_PASSWORD: SLU@2024
+      POSTGRES_DB: factorypulse
+      POSTGRES_USER: admin
+    volumes:
+      - ./database:/var/lib/postgresql
+    ports:
+      - 5432:5432
+    expose:
+      - 5432
+    networks:
+      - backend_network
+
+  activemq:
+    image: apache/activemq-artemis:latest-alpine
+    restart: always
+    container_name: activemq
+    # set shared memory limit when using docker-compose
+    shm_size: 128mb
+    volumes:
+      - ./database/mqtt:/var/lib/artemis-instance
+    ports:
+      - 1883:1883
+      - 8161:8161
+    expose:
+      - 1883
+      - 8161
+    networks:
+      - backend_network
+    depends_on:
+      - db
+
+  backend:
+    image: laxvadnala/realtimeanalytics-backend:f9fed6a8fa22690beea1b062916628a2ab9034b4
+    restart: always
+    container_name: backend
+    ports:
+      - 8080:8080
+    networks:
+      - frontend_network
+      - backend_network
+    depends_on:
+      - db
+      - activemq
+    expose:
+      - 8080
+
+  frontend:
+    image: laxvadnala/realtimeanalytics-frontend:f9fed6a8fa22690beea1b062916628a2ab9034b4
+    restart: always
+    container_name: analytics_frontend
+    ports:
+      - 3000:3000
+    networks:
+      - frontend_network
+    expose:
+      - 3000
+    depends_on:
+      - db
+      - activemq
+      - backend
+
+networks:
+  backend_network:
+  frontend_network:
