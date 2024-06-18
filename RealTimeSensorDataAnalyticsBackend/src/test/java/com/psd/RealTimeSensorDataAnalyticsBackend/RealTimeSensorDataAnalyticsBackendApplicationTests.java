@@ -97,15 +97,22 @@ package com.psd.RealTimeSensorDataAnalyticsBackend;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 import com.psd.RealTimeSensorDataAnalyticsBackend.configurations.CredentialsConfBean;
 import com.psd.RealTimeSensorDataAnalyticsBackend.configurations.MqttBrokerCallBacksAutoBeans;
 import com.psd.RealTimeSensorDataAnalyticsBackend.configurations.WebSocketBeans;
+import com.psd.RealTimeSensorDataAnalyticsBackend.controllers.OnBoardingSensorController;
 import com.psd.RealTimeSensorDataAnalyticsBackend.controllers.MqttController;
 import com.psd.RealTimeSensorDataAnalyticsBackend.models.MqttPublishModel;
 import com.psd.RealTimeSensorDataAnalyticsBackend.models.TopicsModel;
+import com.psd.RealTimeSensorDataAnalyticsBackend.models.UsersModel;
+import com.psd.RealTimeSensorDataAnalyticsBackend.models.UsersMachineModel;
 import com.psd.RealTimeSensorDataAnalyticsBackend.repository.TopicRepository;
+import com.psd.RealTimeSensorDataAnalyticsBackend.repository.UserRepository;
+import com.psd.RealTimeSensorDataAnalyticsBackend.repository.UsersMachineRepository;
+import com.psd.RealTimeSensorDataAnalyticsBackend.utils.JwtTokenUtil;
 
 import org.eclipse.paho.client.mqttv3.IMqttClient;
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
@@ -128,10 +135,12 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
@@ -158,7 +167,16 @@ public class RealTimeSensorDataAnalyticsBackendApplicationTests {
     private TopicRepository topicRepository;
 
     @Mock
+    private UserRepository userRepository;
+
+    @Mock
+    private UsersMachineRepository usersMachineRepository;
+
+    @Mock
     private IMqttClient mqttClient;
+
+    @Mock
+    private JwtTokenUtil jwtTokenUtil;
 
     @InjectMocks
     private MqttBrokerCallBacksAutoBeans mqttBrokerCallBacksAutoBeans;
@@ -166,11 +184,14 @@ public class RealTimeSensorDataAnalyticsBackendApplicationTests {
     @InjectMocks
     private MqttController mqttController;
 
+    @InjectMocks
+    private OnBoardingSensorController onBoardingSensorController;
+
     @BeforeEach
     public void setUp() throws org.eclipse.paho.client.mqttv3.MqttException {
         MockitoAnnotations.openMocks(this);
 
-        mockMvc = MockMvcBuilders.standaloneSetup(mqttController).build();
+        mockMvc = MockMvcBuilders.standaloneSetup(mqttController, onBoardingSensorController).build();
 
         when(credentialsConfBean.getMqttServerURL()).thenReturn("tcp://localhost:1883");
         when(credentialsConfBean.getServerID()).thenReturn("testServer");
@@ -305,6 +326,96 @@ public class RealTimeSensorDataAnalyticsBackendApplicationTests {
                 .andExpect(status().isOk());
     }
 
+    // Test cases for OnBoardingSensorController
+    @Test
+    public void testAddMachine_Success() throws Exception {
+        UsersModel user = new UsersModel();
+        user.setId(1L);
+        user.setUsername("testUser");
+
+        Optional<UsersModel> optionalUser = Optional.of(user);
+
+        when(userRepository.findByUsername("testUser")).thenAnswer(invocation -> optionalUser);
+
+        UsersMachineModel machine = new UsersMachineModel();
+        machine.setId(1L);
+        machine.setMachineName("testMachine");
+        machine.setUsername("testUser");
+
+        when(usersMachineRepository.save(any(UsersMachineModel.class))).thenReturn(machine);
+
+        mockMvc.perform(post("/api/onboarding/add-machine")
+                .header("Authorization", "Bearer jwtToken")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"machineName\": \"testMachine\"}"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    public void testAddMachine_UserNotFound() throws Exception {
+
+        Optional<UsersModel> optionalUser = Optional.empty();
+        when(userRepository.findByUsername("nonExistingUser")).thenAnswer(invocation -> optionalUser);
+
+        mockMvc.perform(post("/api/onboarding/add-machine")
+                .header("Authorization", "Bearer jwtToken")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"machineName\": \"testMachine\"}"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    public void testDeleteMachine_Success() throws Exception {
+        UsersModel user = new UsersModel();
+        user.setId(1L);
+        user.setUsername("testUser");
+
+        UsersMachineModel machine = new UsersMachineModel();
+        machine.setId(1L);
+        machine.setMachineName("testMachine");
+        machine.setUsername("testUser");
+        Optional<UsersModel> optionalUser = Optional.of(user);
+
+        when(userRepository.findByUsername("testUser")).thenAnswer(invocation -> optionalUser);
+        when(usersMachineRepository.findByMachineName("testMachine")).thenReturn(Arrays.asList(machine));
+        doNothing().when(usersMachineRepository).deleteByMachineName("testMachine");
+
+        mockMvc.perform(delete("/api/onboarding/delete-machine")
+                .header("Authorization", "Bearer jwtToken")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"machineName\": \"testMachine\"}"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    public void testDeleteMachine_UserNotFound() throws Exception {
+        Optional<UsersModel> optionalUser = Optional.empty();
+        when(userRepository.findByUsername("nonExistingUser")).thenAnswer(invocation -> optionalUser);
+
+        mockMvc.perform(delete("/api/onboarding/delete-machine")
+                .header("Authorization", "Bearer jwtToken")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"machineName\": \"testMachine\"}"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    public void testDeleteMachine_MachineNotFound() throws Exception {
+        UsersModel user = new UsersModel();
+        user.setId(1L);
+        user.setUsername("testUser");
+        Optional<UsersModel> optionalUser = Optional.of(user);
+
+        when(userRepository.findByUsername("testUser")).thenAnswer(invocation -> optionalUser);
+        when(usersMachineRepository.findByMachineName("nonExistingMachine")).thenReturn(Arrays.asList());
+
+        mockMvc.perform(delete("/api/onboarding/delete-machine")
+                .header("Authorization", "Bearer jwtToken")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"machineName\": \"nonExistingMachine\"}"))
+                .andExpect(status().isNotFound());
+    }
+
     @TestConfiguration
     static class TestConfig {
         @Bean
@@ -315,6 +426,11 @@ public class RealTimeSensorDataAnalyticsBackendApplicationTests {
         @Bean
         public IMqttClient mqttClient() throws org.eclipse.paho.client.mqttv3.MqttException {
             return mock(IMqttClient.class);
+        }
+
+        @Bean
+        public JwtTokenUtil jwtTokenUtil() {
+            return mock(JwtTokenUtil.class);
         }
     }
 }
