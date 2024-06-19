@@ -1,17 +1,25 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useContext } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import { FaUserCircle } from 'react-icons/fa';
 import { FiChevronDown } from 'react-icons/fi';
 import Clock from './Clock';
 import '../Styles/NavBar.css';
 import Logo from '../public/icons/logo.png';
+import {UserContext} from '../UserContext'
 
 function NavBar() {
+  const { user, logoutUser } = useContext(UserContext);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  
+
   const dropdownRef = useRef(null);
 
   const handleDropdownClick = () => {
     setDropdownOpen(!dropdownOpen);
+  };
+
+  const handleLogout = () => {
+    logoutUser(); // Call logoutUser function from UserContext
   };
 
   const handleClickOutside = (event) => {
@@ -32,7 +40,6 @@ function NavBar() {
       <div className="navbar-left">
         <div className="brand"><img src={Logo} /></div>
         <NavLink exact to="/dashboard" className = "nav-link" activeclassname="active">Home</NavLink>
-        <NavLink exact to="/graphs" className = "nav-link" activeclassname="active">Graphs</NavLink>
       </div>
       <div className="navbar-right">
         <Clock />
@@ -44,8 +51,7 @@ function NavBar() {
           {dropdownOpen && (
             <div className="dropdown-content">
               <Link to="/profile" className="dropdown-link">Profile</Link>
-              <Link to="/settings" className="dropdown-link">Settings</Link>
-              <Link to="/" className="dropdown-link">Logout</Link>
+              <Link to="/" className="dropdown-link" onClick={handleLogout}>Logout</Link>
             </div>
           )}
         </div>

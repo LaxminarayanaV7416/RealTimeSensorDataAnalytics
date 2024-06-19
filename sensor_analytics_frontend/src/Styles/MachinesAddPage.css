@@ -1,8 +1,6 @@
-.pageContainer{
-   
-}
 
-.machineDetails_Container {
+
+.sensorDetails_Container {
     position: absolute;
     top: 10rem;
     left: 15rem;
@@ -15,7 +13,7 @@
    
 }
 
-.machineDetails_Container, input{
+.sensorDetails_Container, input{
     display: block;
     font-size: 15px;
     margin-bottom: 2rem;
@@ -24,7 +22,19 @@
     
 }
 
-.machineDetails_Container, label{
+.error1{
+    padding-top: 3rem;
+    color: red;
+    font-weight: bold;
+}
+
+.error2{
+    padding-top: 3rem;
+    color: red;
+    font-weight: bold;
+}
+
+.sensorDetails_Container, label{
     display: block;
     font-size: 18px;
     margin-bottom: 1rem;
@@ -46,7 +56,7 @@ button:hover {
     box-shadow: -10px -10px 20px rgb(83, 221, 240);
 }
 
-.assignMachines_Container {
+.assignSensors_Container {
 
     position: absolute;
     top: 35rem;
@@ -60,7 +70,7 @@ button:hover {
 
 }
 
-.assignMachines_Container, select{
+.assignSensors_Container, select{
     display: block;
     font-size: 15px;
     margin-bottom: 2rem;

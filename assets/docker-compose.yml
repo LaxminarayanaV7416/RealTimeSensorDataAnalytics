@@ -8,18 +8,16 @@ services:
     container_name: database
     # set shared memory limit when using docker-compose
     shm_size: 128mb
-    env_file:
-      - ./dockerConfig.env
     environment:
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: SLU@2024
+      POSTGRES_DB: factorypulse
+      POSTGRES_USER: admin
     volumes:
       - ./database:/var/lib/postgresql
     ports:
-      - ${DB_PORT_FOR_BACKEND}:${DB_PORT_FOR_BACKEND}
+      - 5432:5432
     expose:
-      - ${DB_PORT_FOR_BACKEND}
+      - 5432
     networks:
       - backend_network
 
@@ -29,31 +27,25 @@ services:
     container_name: activemq
     # set shared memory limit when using docker-compose
     shm_size: 128mb
-    env_file:
-      - ./dockerConfig.env
     volumes:
       - ./database/mqtt:/var/lib/artemis-instance
     ports:
-      - ${ACTIVEMQ_UI_MQTT_PORT}:${ACTIVEMQ_UI_MQTT_PORT}
-      - ${ACTIVEMQ_UI_PORT}:${ACTIVEMQ_UI_PORT}
+      - 1883:1883
+      - 8161:8161
     expose:
-      - ${ACTIVEMQ_UI_MQTT_PORT}
-      - ${ACTIVEMQ_UI_PORT}
+      - 1883
+      - 8161
     networks:
       - backend_network
     depends_on:
       - db
 
   backend:
-    build:
-      context: ./RealTimeSensorDataAnalyticsBackend
-      dockerfile: Dockerfile
+    image: laxvadnala/realtimeanalytics-backend:f9fed6a8fa22690beea1b062916628a2ab9034b4
     restart: always
-    env_file:
-      - ./dockerConfig.env
     container_name: backend
     ports:
-      - ${BACKEND_PORT}:${BACKEND_PORT}
+      - 8080:8080
     networks:
       - frontend_network
       - backend_network
@@ -61,22 +53,18 @@ services:
       - db
       - activemq
     expose:
-      - ${BACKEND_PORT}
+      - 8080
 
   frontend:
-    build:
-      context: ./sensor_analytics_frontend
-      dockerfile: Dockerfile
+    image: laxvadnala/realtimeanalytics-frontend:f9fed6a8fa22690beea1b062916628a2ab9034b4
     restart: always
-    env_file:
-      - ./dockerConfig.env
     container_name: analytics_frontend
     ports:
-      - ${FRONTEND_PORT}:${FRONTEND_PORT}
+      - 3000:3000
     networks:
       - frontend_network
     expose:
-      - ${FRONTEND_PORT}
+      - 3000
     depends_on:
       - db
       - activemq

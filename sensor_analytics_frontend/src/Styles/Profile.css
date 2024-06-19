@@ -1,0 +1,20 @@
+.profile-container {
+    position: absolute;
+    top: 10rem;
+    left: 15rem;
+    color: white;
+    background-color: rgba(255, 255, 255, 0.1);
+    padding: 50px;
+    justify-content: center;
+    text-align: center;
+    border-radius: 20px;
+    
+}
+
+h3 {
+    margin-top: -1rem;
+    margin-bottom: 2rem;
+}
+input {
+    color: gray
+}

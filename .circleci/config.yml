@@ -16,27 +16,6 @@ jobs:
       - run:
           name: Run tests
           command: npm test --passWithNoTests
-  build-node:
-    # Build node project
-    executor: node/default
-    working_directory: ~/project/sensor_analytics_frontend
-    steps:
-      - checkout:
-          path: ~/project
-      - node/install-packages:
-          pkg-manager: npm
-      - run:
-          command: npm run build
-      - run:
-          name: Create the ~/artifacts directory if it doesn't exist
-          command: mkdir -p ~/artifacts
-      # Copy output to artifacts dir
-      - run:
-          name: Copy artifacts
-          command: cp -R build dist public .output .next .docusaurus ~/artifacts 2>/dev/null || true
-      - store_artifacts:
-          path: ~/artifacts
-          destination: node-build
   test-java:
     docker:
       - image: cimg/openjdk:17.0
@@ -61,54 +40,59 @@ jobs:
             - ~/.gradle/caches
       - store_artifacts:
           path: build/reports
-  build-java:
+  build-and-push:
     docker:
       - image: cimg/openjdk:17.0
-    working_directory: ~/project/RealTimeSensorDataAnalyticsBackend
     steps:
-      - checkout:
-          path: ~/project
+      - checkout
+      - setup_remote_docker:
+          version: 20.10.7
+      # Install Docker Compose
       - run:
-          name: Calculate cache key
-          command: |-
-            find . -name 'pom.xml' -o -name 'gradlew*' -o -name '*.gradle*' | \
-                    sort | xargs cat > /tmp/CIRCLECI_CACHE_KEY
-      - restore_cache:
-          key: cache-{{ checksum "/tmp/CIRCLECI_CACHE_KEY" }}
+          name: Install Docker Compose
+          command: |
+            sudo curl -L "https://github.com/docker/compose/releases/download/v2.27.1/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+            sudo chmod +x /usr/local/bin/docker-compose
       - run:
-          command: ./gradlew build
+          name: Build the Java Jars
+          command: |
+            cd RealTimeSensorDataAnalyticsBackend && ./gradlew build && cd ..
       - run:
-          name: Create the ~/artifacts directory if it doesn't exist
-          command: mkdir -p ~/javaArtifacts
-      # Copy output to artifacts dir
+          name: Test the Jar exists
+          command: |
+            ls RealTimeSensorDataAnalyticsBackend/build/libs
       - run:
-          name: Copy javaArtifacts
-          command: cp -R build/libs/*.jar ~/javaArtifacts 2>/dev/null || true
-      - store_artifacts:
-          path: ~/javaArtifacts
-          destination: java-build
-  deploy:
-    # This is an example deploy job, not actually used by the workflow
-    docker:
-      - image: cimg/base:stable
-    steps:
-      # Replace this with steps to deploy to users
+          name: Run the docker compose up command
+          command: |
+            docker-compose --env-file dockerConfig.env build
       - run:
-          name: deploy
-          command: '#e.g. ./deploy.sh'
+          name: check the docker images
+          command: |
+            docker images
+      - run:
+          name: Authenticate with Docker Hub
+          command: |
+            echo "$DOCKERHUB_TOKEN" | docker login --username $DOCKERHUB_USERNAME --password-stdin
+      - run:
+          name: Tag the docker containers with latest tag
+          command: |
+            docker tag project-frontend:latest laxvadnala/realtimeanalytics-frontend:${CIRCLE_SHA1}
+            docker tag project-backend:latest laxvadnala/realtimeanalytics-backend:${CIRCLE_SHA1}
+      - run:
+          name: Push the docker containers to docker hub
+          command: |
+            docker push laxvadnala/realtimeanalytics-backend:${CIRCLE_SHA1}
+            docker push laxvadnala/realtimeanalytics-frontend:${CIRCLE_SHA1}
+
 workflows:
   build-and-test:
     jobs:
       - test-node
-      - build-node:
-          requires:
-            - test-node
-            - test-java
       - test-java
-      - build-java:
+      - build-and-push:
           requires:
             - test-node
             - test-java
-    # - deploy:
-    #     requires:
-    #       - build-node
+          filters:
+            branches:
+              only: main

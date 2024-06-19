@@ -8,7 +8,9 @@ import com.psd.RealTimeSensorDataAnalyticsBackend.models.TopicsModel;
 
 @Repository
 public interface TopicRepository extends JpaRepository<TopicsModel, Long> {
-    TopicsModel findByTopicName(String topicString);
+    TopicsModel findByTopicName(String topicName);
     List<TopicsModel> findByGroupName(String groupName);
     TopicsModel findByMachineName(String machineName);
+    TopicsModel findByGroupNameAndTopicName(String groupName, String topicName);
 }
+

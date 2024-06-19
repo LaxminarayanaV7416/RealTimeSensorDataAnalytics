@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { register } from './api';
+import { registerAdmin } from './api';
 import './Styles/LoginSignupPage.css';
 
-const SignupPage = () => {
+const AdminSignupPage = () => {
   const [name, setName] = useState('');
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
@@ -51,7 +51,7 @@ const SignupPage = () => {
     }
 
     try {
-      const data = await register(name, username, email, password);
+      const data = await registerAdmin(name, username, email, password);
       console.log('Signup successful:', data);
       navigate('/');
     } catch (error) {
@@ -64,7 +64,7 @@ const SignupPage = () => {
     <div className='C1'>
       <div className='container'>
         <div className='Header'>
-          <div className='TEXT'>SIGN UP</div>
+          <div className='TEXT'>ADMIN - SIGN UP</div>
           <div className='UNDERLINE'></div>
         </div>
         <div className='Inputs'>
@@ -102,7 +102,6 @@ const SignupPage = () => {
           </div>
         </div>
         {errorMessage && <div className='error-message' style={{color:"red", marginTop:"-40px", marginBottom:"20px"  }}>{errorMessage}</div>}
-        <div className='Forgot-Password'>Already A Member ?<a href='/'><span>Click Here!</span></a></div>
         <div className='Submit-Container'>
           <button className='Submit' onClick={handleSubmit}>
             Sign Up
@@ -113,4 +112,4 @@ const SignupPage = () => {
   );
 };
 
-export default SignupPage;
+export default AdminSignupPage;

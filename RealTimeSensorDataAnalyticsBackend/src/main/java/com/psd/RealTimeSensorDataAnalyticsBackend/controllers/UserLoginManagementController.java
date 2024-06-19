@@ -46,7 +46,13 @@ public class UserLoginManagementController {
             String hashedPassword = bCryptPasswordEncoder.encode(user.getPassword());
             user.setPassword(hashedPassword);
             user.setUserType(UserEnum.IS_USER.toString());
-            if (userRepository.save(user).getId()>0){
+            try{
+                user = userRepository.save(user);
+            } catch(Exception exception){
+                resultResponse.put("message", "please change email or username as it already exists");
+                return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(resultResponse);
+            }
+            if (user.getId()>0){
                 resultResponse.put("message", "User Registered Succesfully");
                 return ResponseEntity.ok(resultResponse);
             }
@@ -65,7 +71,13 @@ public class UserLoginManagementController {
             String hashedPassword = bCryptPasswordEncoder.encode(user.getPassword());
             user.setPassword(hashedPassword);
             user.setUserType(UserEnum.IS_ADMIN.toString());
-            if (userRepository.save(user).getId()>0){
+            try{
+                user = userRepository.save(user);
+            } catch(Exception exception){
+                resultResponse.put("message", "please change email or username as it already exists");
+                return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(resultResponse);
+            }
+            if (user.getId()>0){
                 resultResponse.put("message", "User Registered Succesfully");
                 return ResponseEntity.ok(resultResponse);
             }
@@ -102,6 +114,7 @@ public class UserLoginManagementController {
     }
 
     // ADMIN ROUTE ONLY
+    @CrossOrigin(origins = "http://localhost:3000")
     @GetMapping("/get-all-users")
     public ResponseEntity<Object> getAllUsers(@RequestHeader(value = "Authorization", required = false) String token){
         Map<String, Object> result = new HashMap<>();

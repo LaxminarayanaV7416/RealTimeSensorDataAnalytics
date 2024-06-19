@@ -5,7 +5,7 @@ import lombok.Data;
 
 @Data
 @Entity
-@Table(name = "machine_user")
+@Table(name = "machine_user",uniqueConstraints = {@UniqueConstraint(columnNames = {"userId", "machineId"})})
 public class UsersMachineModel {
 
     @Id

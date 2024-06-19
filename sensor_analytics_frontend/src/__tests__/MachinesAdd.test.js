@@ -21,7 +21,7 @@ describe('Components inside the Machine adding division', () => {
             </MemoryRouter>
         );
 
-        expect(screen.getByPlaceholderText("Enter Machine Name")).toBeInTheDocument();
+        expect(screen.getByPlaceholderText("Enter Group Name")).toBeInTheDocument();
     });
 
     test('Contains the input field to enter topic name', () => {
@@ -50,7 +50,7 @@ describe('Components inside the Machine adding division', () => {
 });
 
 describe('Components inside the Machine assigning division', () => {
-    test('Contains the dropdown field to select machine name', () => {
+    test('Contains the dropdown field to select group name', () => {
         render(
             <MemoryRouter>
                 <UserContext.Provider value={{ user: mockUser }}>
@@ -58,7 +58,7 @@ describe('Components inside the Machine assigning division', () => {
                 </UserContext.Provider>
             </MemoryRouter>
         );
-        const selectElement = screen.getByDisplayValue('Select a Machine');
+        const selectElement = screen.getByDisplayValue('Select a Group');
         expect(selectElement).toBeInTheDocument();
     });
 
@@ -85,7 +85,8 @@ describe('Components inside the Machine assigning division', () => {
             </MemoryRouter>
         );
 
-        expect(screen.getByPlaceholderText("Enter User Email Address")).toBeInTheDocument();
+        const selectElement = screen.getByDisplayValue('Select a UserName');
+        expect(selectElement).toBeInTheDocument();
     });
 
     test('Contains the button for assigning the machine', () => {

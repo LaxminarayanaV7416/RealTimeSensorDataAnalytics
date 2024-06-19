@@ -3,6 +3,7 @@ package com.psd.RealTimeSensorDataAnalyticsBackend.controllers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -41,6 +42,7 @@ public class UsersMachineController {
     private UsersMachineRepository usersMachineRepository;
 
     // ADMIN ROUTE ONLY
+    @CrossOrigin(origins = "http://localhost:3000")
     @PostMapping(value = "/assign-machine-to-user")
     public ResponseEntity<Object> assignMachineToUser(@RequestHeader(value = "Authorization", required = false) String token,
                                     @RequestBody UsersMachineModel usersMachineModel){
@@ -48,7 +50,6 @@ public class UsersMachineController {
         if (token == null){
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Token Is required to Proceed");
         }else{
-            System.out.println("TOKEN IS --> "+token);
             String realToken = token.substring(7);
             boolean tokenCheckResult = jwtTokenUtil.validateToken(realToken);
             if(tokenCheckResult){
@@ -67,12 +68,17 @@ public class UsersMachineController {
                             usersMachineModel.setMachineId(machineFoundResults.getId());
                             usersMachineModel.setUsername(user.getUsername());
                             usersMachineModel.setMachineName(machineFoundResults.getMachineName());
-                            if(usersMachineRepository.save(usersMachineModel).getId()>0){
-                                resultResponse.put("message", "Assignment completed!");
-                                return  ResponseEntity.status(HttpStatus.OK).body(resultResponse); 
-                            } else {
-                                resultResponse.put("message", "Machine Not assigned due to internal server error");
-                                return  ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(resultResponse); 
+                            try{
+                                if(usersMachineRepository.save(usersMachineModel).getId()>0){
+                                    resultResponse.put("message", "Assignment completed!");
+                                    return  ResponseEntity.status(HttpStatus.OK).body(resultResponse); 
+                                } else {
+                                    resultResponse.put("message", "Machine Not assigned because its already exsists");
+                                    return  ResponseEntity.status(HttpStatus.BAD_REQUEST).body(resultResponse); 
+                                }
+                            } catch (Exception exception){
+                                resultResponse.put("message", "Machine Not assigned because its already exsists");
+                                return  ResponseEntity.status(HttpStatus.BAD_REQUEST).body(resultResponse); 
                             }
                         } else {
                             resultResponse.put("message", "Machine Name not found in database "+usersMachineModel.getMachineName() + ", Please register this machine before proceeding");
@@ -96,6 +102,7 @@ public class UsersMachineController {
 
 
     // we will get all available machines based on user token
+    @CrossOrigin(origins = "http://localhost:3000")
     @GetMapping("/list-all-available-machines")
     public ResponseEntity<Object> listAllAvailableMachine(@RequestHeader(value = "Authorization", required = false) String token){
         Map<String, Object> response = new HashMap<>();
