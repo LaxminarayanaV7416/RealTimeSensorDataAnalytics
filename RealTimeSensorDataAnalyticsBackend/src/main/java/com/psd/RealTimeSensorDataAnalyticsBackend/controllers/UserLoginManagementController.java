@@ -14,20 +14,16 @@ import java.util.ArrayList;
 
 import com.psd.RealTimeSensorDataAnalyticsBackend.models.UsersModel;
 import com.psd.RealTimeSensorDataAnalyticsBackend.models.TokenModel;
-import com.psd.RealTimeSensorDataAnalyticsBackend.models.Users;
 import com.psd.RealTimeSensorDataAnalyticsBackend.repository.UserRepository;
 import com.psd.RealTimeSensorDataAnalyticsBackend.utils.JwtTokenUtil;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.HashMap;
-import java.util.Map;
+import com.psd.RealTimeSensorDataAnalyticsBackend.constants.UserEnum;
 
 @RestController
-@RequestMapping("/api")
+@RequestMapping
 public class UserLoginManagementController {
+
+    @Autowired
+    private JwtTokenUtil jwtTokenUtil;
 
     @Autowired
     private UserRepository userRepository;
@@ -35,9 +31,7 @@ public class UserLoginManagementController {
     @Autowired
     private BCryptPasswordEncoder bCryptPasswordEncoder;
 
-    @Autowired
-    private JwtTokenUtil jwtTokenUtil;
-
+    @CrossOrigin(origins = "http://localhost:3000")
     @PostMapping("/register")
     public ResponseEntity<Object> registerUser(@RequestBody UsersModel user){
         UsersModel searchedUser = userRepository.findByUsername(user.getUsername());
@@ -63,6 +57,7 @@ public class UserLoginManagementController {
         return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(resultResponse);
     }
 
+    @CrossOrigin(origins = "http://localhost:3000")
     @PostMapping("/register-admin")
     public ResponseEntity<Object> registerAdminUser(@RequestBody UsersModel user){
         UsersModel searchedUser = userRepository.findByUsername(user.getUsername());
@@ -88,6 +83,7 @@ public class UserLoginManagementController {
         return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(resultResponse);
     }
 
+    @CrossOrigin(origins = "http://localhost:3000")
     @PostMapping("/login")
     public ResponseEntity<Object> generateToken(@RequestBody TokenModel tokenReqRes){
         UsersModel databaseUser = userRepository.findByUsername(tokenReqRes.getUsername());
