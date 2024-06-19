@@ -72,7 +72,7 @@ jobs:
       - run:
           name: Authenticate with Docker Hub
           command: |
-            echo "$DOCKERHUB_TOKEN" | docker login --username $DOCKERHUB_USERNAME --password-stdin
+            echo "$DOCKERHUB_FAZIL_TOKEN" | docker login --username $DOCKERHUB_FAZIL_USERNAME --password-stdin
       - run:
           name: Tag the docker containers with latest tag
           command: |
