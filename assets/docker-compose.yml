@@ -41,7 +41,7 @@ services:
       - db
 
   backend:
-    image: laxvadnala/realtimeanalytics-backend:f9fed6a8fa22690beea1b062916628a2ab9034b4
+    image: saidineshvasireddy0123/realtimeanalytics-backend:80abd9e0551c1d9839670ce161b5fc69ffcccf9c
     restart: always
     container_name: backend
     ports:
@@ -56,7 +56,7 @@ services:
       - 8080
 
   frontend:
-    image: laxvadnala/realtimeanalytics-frontend:f9fed6a8fa22690beea1b062916628a2ab9034b4
+    image: saidineshvasireddy0123/realtimeanalytics-frontend:80abd9e0551c1d9839670ce161b5fc69ffcccf9c
     restart: always
     container_name: analytics_frontend
     ports:
