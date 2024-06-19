@@ -1,9 +1,11 @@
 # Factory Pulse: Machinery Health Monitoring System - RealTimeSensorDataAnalyticsDashBoard
 
-[![FrontEnd Docker Hub Link](https://img.shields.io/badge/Docker%20Hub%20Frontend%20Link-blue.svg)](
+[![FrontEnd Docker Hub](https://img.shields.io/badge/Docker%20Hub%20Frontend-LatestBuild:dc4ce8fd3d5d2cffa9cb4847c23363f86772571c-blue.svg)](
     https://hub.docker.com/r/laxvadnala/realtimeanalytics-frontend)
-[![BackEnd Docker Hub Link](https://img.shields.io/badge/Docker%20Hub%20Backend%20Link-blue.svg)](
+
+[![BackEnd Docker Hub](https://img.shields.io/badge/Docker%20Hub%20Backend-LatestBuild:dc4ce8fd3d5d2cffa9cb4847c23363f86772571c-blue.svg)](
     https://hub.docker.com/r/laxvadnala/realtimeanalytics-backend)
+
 
 ## Introduction
 This project centers around the utilization of machine sensors installed within newly constructed factories or machinery. These sensors continuously transmit data through a connected server using the MQTT protocol. Our backend is connected to the MQTT Broker publishes this data by the conencted clients through WebSocket, the websocket can be opened by web applications or any compatible application, including mobile apps. our Front end  application visually shows the data through graphs. In the event that an operator detects any malfunction in the machinery for any reason, they can refer to the application to identify the problematic machine and initiate necessary repairs. The application's scope extends beyond its current description; it can be expanded to include automatic alerts triggered by machine malfunction detection using machine learning. However, this aspect of the scope is not included in this project
@@ -16,6 +18,21 @@ we use MQTT brokers to enable the publish/subscribe (pub/sub) communication mode
 - Our Backend is the universal subscriber to the the all publishers that means how many publishers may be created all are subscribed by our backend.
 - Websockets which are usually have the capability the filter out to which particular publishers messages should we recieve as stream in real time.
 - so we query the via websocket params to the backend that, we need to listen to machine 1 and our backend enables us to redirect the flow of messages from that particular publisher to the websocket connection in real time.
+
+
+## Zoom Meeting Link
+
+[![Video Demo Link](https://img.shields.io/badge/Video_demo-zoom_recording_link-blue.svg)](https://slu.zoom.us/rec/share/uJY55h4Ss2z6WSLrDRdz_aCNpD-if1oVz2rIh75WRkAmlCT1uez5QDlh9NVgXVOY.wv-XbTS28ybpzZMc?startTime=1718697478000%20Passcode:%20ab$6*&#.)
+
+#### Zoom Recording Passcode: 
+```{shell}
+ab$6*&#.
+```
+
+<a href="https://slu.zoom.us/rec/share/uJY55h4Ss2z6WSLrDRdz_aCNpD-if1oVz2rIh75WRkAmlCT1uez5QDlh9NVgXVOY.wv-XbTS28ybpzZMc?startTime=1718697478000
+Passcode: ab$6*&#."> Zoom Demo recording Meeting link </a>
+
+
 
 ### Components used in Architecture
 - #### Spring Boot
@@ -121,8 +138,8 @@ $ docker-compose --env-file dockerConfig.env up
 
 ### Miscellenous Links for handy
 #### Swagger UI Link after application is booted up
-[http://localhost:8080/swagger-ui/index.html](http://localhost:8080/swagger-ui/index.html)
+- [http://localhost:8080/swagger-ui/index.html](http://localhost:8080/swagger-ui/index.html)
 
 #### Apache Active MQ Management Console Link (Artemis)  (username : artemis & password : artemis)
-[http://localhost:8161/console/auth/login](http://localhost:8161/console/auth/login)
+- [http://localhost:8161/console/auth/login](http://localhost:8161/console/auth/login)
 
